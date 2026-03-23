@@ -100,6 +100,29 @@ export default function VideoCanvas({ stream, overlay, onCanvasReady, onOverlayU
         ctx.globalAlpha = 1;
       }
 
+      // Draw Artist Grid if enabled
+      if (ov.showGrid && canvas.width > 0) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        
+        const size = ov.gridSize;
+        for (let x = size; x < canvas.width; x += size) {
+          ctx.beginPath();
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, canvas.height);
+          ctx.stroke();
+        }
+        for (let y = size; y < canvas.height; y += size) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(canvas.width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
       rafRef.current = requestAnimationFrame(draw);
     };
 

@@ -4,11 +4,19 @@ import { useRef, useState } from "react";
 import { useDrawing } from "../hooks/useDrawing";
 
 interface DrawLayerProps {
-  width: number;
-  height: number;
+  width?: number;
+  height?: number;
 }
 
-const COLORS = ["#ffffff", "#ff4757", "#ffa502", "#2ed573", "#1e90ff", "#a29bfe", "#fd79a8"];
+const COLORS = [
+  { hex: "#ffffff", label: "Pure White" },
+  { hex: "#ef4444", label: "Ruby Red" },
+  { hex: "#f59e0b", label: "Amber" },
+  { hex: "#10b981", label: "Emerald" },
+  { hex: "#06b6d4", label: "Cyan" },
+  { hex: "#7c3aed", label: "Violet" },
+  { hex: "#ec4899", label: "Pink" }
+];
 
 export default function DrawLayer({ width, height }: DrawLayerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -21,144 +29,91 @@ export default function DrawLayer({ width, height }: DrawLayerProps) {
   const opts = { color, lineWidth, mode };
 
   return (
-    <>
-      {/* Drawing canvas (transparent, sits above video) */}
+    <div className="absolute inset-0 z-10 pointer-events-none">
+      {/* Drawing canvas */}
       <canvas
         ref={canvasRef}
-        width={width || window.innerWidth}
-        height={height || window.innerHeight}
-        className="draw-layer"
-        style={{ position: "absolute", inset: 0, zIndex: 10 }}
+        width={width || (typeof window !== 'undefined' ? window.innerWidth : 1920)}
+        height={height || (typeof window !== 'undefined' ? window.innerHeight : 1080)}
+        className="draw-layer pointer-events-auto"
         onPointerDown={(e) => onPointerDown(e, opts)}
         onPointerMove={(e) => onPointerMove(e, opts)}
         onPointerUp={onPointerUp}
         onPointerLeave={onPointerUp}
       />
 
-      {/* Floating toolbar */}
+      {/* Premium Draw Toolbar */}
       {showToolbar && (
-        <div
-          className="glass"
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: "50%",
-            transform: "translateX(-50%)",
-            zIndex: 20,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            padding: "10px 14px",
-            borderRadius: 999,
-          }}
-        >
-          {/* Pen / Eraser toggle */}
-          <button
-            title="Pen"
-            onClick={() => setMode("pen")}
-            style={{
-              fontSize: 18,
-              opacity: mode === "pen" ? 1 : 0.4,
-              transition: "opacity 0.2s",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            ✏️
-          </button>
-          <button
-            title="Eraser"
-            onClick={() => setMode("eraser")}
-            style={{
-              fontSize: 18,
-              opacity: mode === "eraser" ? 1 : 0.4,
-              transition: "opacity 0.2s",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-            }}
-          >
-            🧽
-          </button>
-
-          {/* Divider */}
-          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.12)" }} />
-
-          {/* Color swatches */}
-          {COLORS.map((c) => (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-4 px-6 py-4 rounded-[32px] glass shadow-2xl border-white/10 pointer-events-auto animate-in fade-in slide-in-from-bottom-4 duration-500">
+          
+          {/* Tool Modes */}
+          <div className="flex bg-white/5 p-1 rounded-2xl gap-1">
             <button
-              key={c}
-              title={c}
-              onClick={() => { setColor(c); setMode("pen"); }}
-              style={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                background: c,
-                border: color === c && mode === "pen" ? "2px solid #fff" : "2px solid transparent",
-                cursor: "pointer",
-                transition: "border 0.15s",
-                flexShrink: 0,
-              }}
+              onClick={() => setMode("pen")}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${mode === "pen" ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/40 hover:bg-white/5'}`}
+            >
+              ✏️
+            </button>
+            <button
+              onClick={() => setMode("eraser")}
+              className={`w-10 h-10 rounded-xl flex items-center justify-center transition-all ${mode === "eraser" ? 'bg-primary text-white shadow-lg shadow-primary/20' : 'text-white/40 hover:bg-white/5'}`}
+            >
+              🧽
+            </button>
+          </div>
+
+          <div className="w-px h-8 bg-white/10 mx-1" />
+
+          {/* Color Pallette */}
+          <div className="flex items-center gap-2.5">
+            {COLORS.map((c) => (
+              <button
+                key={c.hex}
+                onClick={() => { setColor(c.hex); setMode("pen"); }}
+                className={`w-6 h-6 rounded-full transition-all hover:scale-125 ${color === c.hex && mode === "pen" ? 'ring-2 ring-white ring-offset-2 ring-offset-black scale-110' : ''}`}
+                style={{ backgroundColor: c.hex }}
+              />
+            ))}
+          </div>
+
+          <div className="w-px h-8 bg-white/10 mx-1" />
+
+          {/* Size Slider */}
+          <div className="flex items-center gap-3 w-32">
+            <span className="text-[10px] font-black uppercase tracking-widest text-white/30">Size</span>
+            <input
+              type="range"
+              min={2}
+              max={40}
+              step={1}
+              value={lineWidth}
+              onChange={(e) => setLineWidth(Number(e.target.value))}
+              className="accent-primary"
             />
-          ))}
+          </div>
 
-          {/* Divider */}
-          <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.12)" }} />
+          <div className="w-px h-8 bg-white/10 mx-1" />
 
-          {/* Stroke width */}
-          <input
-            type="range"
-            min={2}
-            max={24}
-            step={1}
-            value={lineWidth}
-            onChange={(e) => setLineWidth(Number(e.target.value))}
-            style={{ width: 64 }}
-          />
-
-          {/* Clear */}
+          {/* Actions */}
           <button
-            title="Clear drawings"
             onClick={clear}
-            style={{
-              fontSize: 16,
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              opacity: 0.7,
-            }}
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-lg text-white/40 hover:text-red-400 hover:bg-red-400/10 transition-all"
+            title="Clear All"
           >
             🗑️
           </button>
         </div>
       )}
 
-      {/* Toggle toolbar */}
+      {/* Toolbar Visibility Toggle */}
       <button
         onClick={() => setShowToolbar((v) => !v)}
-        style={{
-          position: "fixed",
-          bottom: 24,
-          right: 16,
-          zIndex: 21,
-          width: 40,
-          height: 40,
-          borderRadius: "50%",
-          background: "rgba(255,255,255,0.1)",
-          border: "1px solid rgba(255,255,255,0.15)",
-          color: "#fff",
-          fontSize: 18,
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          backdropFilter: "blur(12px)",
-        }}
+        className="fixed bottom-8 right-8 w-14 h-14 rounded-2xl flex items-center justify-center glass border-white/10 text-xl text-white/60 hover:text-white hover:bg-white/5 transition-all pointer-events-auto shadow-2xl group"
       >
-        {showToolbar ? "✕" : "✏️"}
+        <div className={`transition-transform duration-300 ${showToolbar ? 'rotate-90' : 'rotate-0'}`}>
+            {showToolbar ? "✕" : "✏️"}
+        </div>
       </button>
-    </>
+    </div>
   );
 }

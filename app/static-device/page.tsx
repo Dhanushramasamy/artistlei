@@ -105,12 +105,9 @@ function StaticDeviceInner() {
     connRef.current = call;
 
     call.on("stream", () => {
-      // We don't expect a stream back, but we mark as connected
       setStatus("connected");
     });
 
-    // PeerJS sometimes doesn't fire 'stream' if the other side doesn't send one
-    // So we'll also mark connected on successful data connection or just after calling if we assume success
     const timer = setTimeout(() => {
         if (call.open) setStatus("connected");
     }, 2000);
@@ -141,23 +138,23 @@ function StaticDeviceInner() {
   };
 
   const statusLabel: Record<Status, string> = {
-    idle: "Connect to Lightbox",
-    connecting: "Connecting…",
-    connected: "Beaming to Lightbox ✓",
-    error: "Connection error",
+    idle: "Ready",
+    connecting: "Linking…",
+    connected: "Beaming",
+    error: "Error",
   };
 
   const statusClass: Record<Status, string> = {
-    idle: "waiting",
-    connecting: "waiting",
-    connected: "connected",
-    error: "error",
+    idle: "status-waiting",
+    connecting: "status-waiting",
+    connected: "status-connected",
+    error: "status-error",
   };
 
   return (
-    <div style={{ width: "100vw", height: "100dvh", display: "flex", flexDirection: "column", background: "#000" }}>
-      {/* Canvas compositor */}
-      <div style={{ flex: 1, position: "relative", overflow: "hidden" }}>
+    <div className="w-screen h-[100dvh] flex flex-col bg-black overflow-hidden selection:bg-primary/30">
+      {/* Main Preview Area */}
+      <div className="flex-1 relative overflow-hidden bg-[#050508]">
         <VideoCanvas
           stream={cameraStream}
           overlay={overlay}
@@ -166,121 +163,63 @@ function StaticDeviceInner() {
         />
 
         {!cameraStream && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 12,
-              color: "rgba(255,255,255,0.2)",
-              fontSize: 14,
-              pointerEvents: "none",
-            }}
-          >
-            <div style={{ fontSize: 56 }}>📷</div>
-            <p>Starting Camera...</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-white/20 select-none">
+            <div className="w-16 h-16 md:w-20 md:h-20 glass rounded-3xl flex items-center justify-center text-4xl md:text-5xl animate-pulse">
+              📷
+            </div>
+            <p className="brand-font text-sm md:text-lg font-bold tracking-widest uppercase opacity-50">Lens Readying...</p>
           </div>
         )}
       </div>
 
-      {/* Top bar */}
-      <div
-        style={{
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 30,
-          padding: "12px 16px",
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          background: "linear-gradient(to bottom, rgba(0,0,0,0.85) 0%, transparent 100%)",
-        }}
-      >
-        <Link href="/" style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, textDecoration: "none", flexShrink: 0 }}>
-          ← Home
+      {/* Condensed Top Bar */}
+      <div className="fixed top-0 left-0 right-0 z-30 px-3 md:px-6 py-2 md:py-4 flex items-center gap-2 md:gap-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent pointer-events-none">
+        <Link 
+          href="/" 
+          className="pointer-events-auto w-8 h-8 md:w-10 md:h-10 glass rounded-full flex items-center justify-center text-sm md:text-lg hover:bg-white/10 transition-colors border-white/5"
+        >
+          ←
         </Link>
 
-        {/* Status badge */}
-        <div
-          className="glass"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "6px 12px",
-            borderRadius: 999,
-            whiteSpace: "nowrap",
-          }}
-        >
-          <div className={`status-dot ${statusClass[status]}`} />
-          <span style={{ fontSize: 12, color: "rgba(255,255,255,0.7)" }}>{statusLabel[status]}</span>
+        {/* Compact Status Bubble */}
+        <div className={`pointer-events-auto px-3 py-1.5 md:px-4 md:py-2 rounded-full glass brand-font font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] flex items-center ${statusClass[status]}`}>
+          <div className="status-dot-pulse w-1.5 h-1.5 md:w-2 md:h-2" />
+          <span className="hidden sm:inline mr-1">{statusLabel[status]}</span>
+          {status === "connected" ? "Sync ✓" : status === "error" ? "fail" : statusLabel[status]}
         </div>
 
-        {/* Local Camera Control */}
+        {/* Camera Flip - smaller on mobile */}
         <button
           onClick={toggleCamera}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 999,
-            background: "rgba(255,255,255,0.1)",
-            border: "1px solid rgba(255,255,255,0.15)",
-            color: "rgba(255,255,255,0.7)",
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
-          }}
+          className="pointer-events-auto ml-auto px-3 py-1.5 md:px-5 md:py-2.5 rounded-full glass brand-font font-bold text-[9px] md:text-[10px] uppercase tracking-[0.2em] text-white/70 hover:bg-white/10 transition-all active:scale-95 border-white/5"
         >
-          🔄 Flip Camera
+          <span className="hidden sm:inline">🔄 Flip Camera</span>
+          <span className="sm:hidden">🔄</span>
         </button>
 
-        {/* Room ID input + Connect */}
+        {/* Compact Connection UI */}
         {status !== "connected" && (
-          <div style={{ display: "flex", gap: 8, flex: 1, maxWidth: 360 }}>
+          <div className="pointer-events-auto flex items-center gap-1.5 max-w-[140px] sm:max-w-sm ml-1">
             <input
               value={roomId}
               onChange={(e) => setRoomId(e.target.value)}
-              placeholder="Enter Lightbox Room ID..."
+              placeholder="ID"
               onKeyDown={(e) => e.key === "Enter" && connect()}
-              style={{
-                flex: 1,
-                background: "rgba(255,255,255,0.07)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                borderRadius: 10,
-                padding: "7px 12px",
-                color: "#fff",
-                fontSize: 13,
-                outline: "none",
-              }}
+              className="w-full bg-white/5 border border-white/10 rounded-full px-3 py-1.5 md:px-5 md:py-2.5 text-[10px] md:text-[11px] font-bold tracking-widest uppercase text-white outline-none focus:border-primary/50 transition-all placeholder:text-white/20"
             />
             <button
               onClick={connect}
               disabled={!ready || !roomId.trim()}
-              className="btn-glow"
-              style={{
-                padding: "7px 18px",
-                borderRadius: 10,
-                background: "linear-gradient(135deg, #7c3aed, #06b6d4)",
-                border: "none",
-                color: "#fff",
-                fontWeight: 600,
-                fontSize: 13,
-                cursor: ready && roomId.trim() ? "pointer" : "not-allowed",
-                opacity: ready && roomId.trim() ? 1 : 0.5,
-                flexShrink: 0,
-              }}
+              className="btn-primary px-3 py-1.5 md:px-6 md:py-2.5 rounded-full text-[10px] tracking-[0.2em] font-black uppercase disabled:opacity-30 disabled:pointer-events-none"
             >
-              Connect
+              <span className="hidden sm:inline">Link</span>
+              <span className="sm:hidden">→</span>
             </button>
           </div>
         )}
       </div>
 
-      {/* Overlay control panel */}
+      {/* Control Panel (Responsive) */}
       <ControlPanel
         overlay={overlay}
         onUpdate={update}
@@ -288,23 +227,14 @@ function StaticDeviceInner() {
         onImageUpload={(src) => update({ src })}
       />
 
+      {/* Slim Error Notifications */}
       {(peerError || errorOverride) && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: 24,
-            left: 16,
-            right: 16,
-            zIndex: 50,
-            background: "rgba(239,68,68,0.15)",
-            border: "1px solid rgba(239,68,68,0.4)",
-            borderRadius: 12,
-            padding: "12px 16px",
-            color: "#f87171",
-            fontSize: 13,
-          }}
-        >
-          ⚠ {peerError || errorOverride}
+        <div className="fixed bottom-20 left-4 right-4 z-[60] glass border-red-500/20 bg-red-500/5 px-4 py-3 rounded-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <span className="text-base text-red-500">⚠️</span>
+          <div className="flex flex-col overflow-hidden">
+            <span className="text-[9px] font-black uppercase tracking-widest text-red-500/60 leading-none mb-1">Error</span>
+            <span className="text-xs font-bold text-red-400 leading-tight truncate">{peerError || errorOverride}</span>
+          </div>
         </div>
       )}
     </div>

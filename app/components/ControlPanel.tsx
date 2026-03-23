@@ -1,16 +1,18 @@
 "use client";
 
-import type { OverlayState } from "../hooks/useOverlay";
+import { useState } from "react";
+import type { OverlayState, OverlayPatch } from "../hooks/useOverlay";
 
 interface ControlPanelProps {
   overlay: OverlayState;
-  onUpdate: (patch: Partial<OverlayState>) => void;
+  onUpdate: (patch: OverlayPatch) => void;
   onReset: () => void;
   onImageUpload: (src: string) => void;
 }
 
 interface SliderProps {
   label: string;
+  icon: string;
   value: number;
   min: number;
   max: number;
@@ -19,12 +21,17 @@ interface SliderProps {
   onChange: (v: number) => void;
 }
 
-function Slider({ label, value, min, max, step, display, onChange }: SliderProps) {
+function Slider({ label, icon, value, min, max, step, display, onChange }: SliderProps) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between items-center">
-        <span className="text-xs text-white/60 font-medium">{label}</span>
-        <span className="text-xs text-white/80 font-mono tabular-nums">{display}</span>
+    <div className="flex flex-col gap-1.5 group/slider">
+      <div className="flex justify-between items-center px-0.5">
+        <label className="flex items-center gap-1.5 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-white/40 group-hover/slider:text-white/70 transition-colors">
+          <span className="text-xs opacity-80">{icon}</span>
+          {label}
+        </label>
+        <span className="text-[10px] md:text-xs font-mono font-bold text-secondary bg-secondary/10 px-1.5 py-0.5 rounded-md border border-secondary/10">
+          {display}
+        </span>
       </div>
       <input
         type="range"
@@ -33,12 +40,15 @@ function Slider({ label, value, min, max, step, display, onChange }: SliderProps
         step={step}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
+        className="w-full cursor-pointer accent-primary h-4"
       />
     </div>
   );
 }
 
 export default function ControlPanel({ overlay, onUpdate, onReset, onImageUpload }: ControlPanelProps) {
+  const [minimized, setMinimized] = useState(false);
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -48,56 +58,84 @@ export default function ControlPanel({ overlay, onUpdate, onReset, onImageUpload
     e.target.value = "";
   };
 
+  if (minimized) {
+    return (
+      <button
+        onClick={() => setMinimized(false)}
+        className="glass fixed right-4 bottom-4 w-12 h-12 rounded-2xl z-50 flex items-center justify-center text-xl shadow-2xl border-white/10 hover:bg-white/5 active:scale-95 transition-all"
+        title="Open Controls"
+      >
+        🎛️
+      </button>
+    );
+  }
+
   return (
-    <div
-      className="glass control-panel flex flex-col"
-      style={{
-        position: "absolute",
-        right: "clamp(8px, 2vw, 24px)",
-        bottom: "clamp(8px, 2vw, 24px)",
-        maxHeight: "calc(100dvh - 100px)",
-        overflowY: "auto",
-        zIndex: 40,
-      }}
-    >
+    <div className="glass fixed right-4 bottom-4 w-[calc(100vw-32px)] sm:w-72 md:w-80 rounded-3xl p-4 md:p-6 z-50 flex flex-col gap-4 md:gap-6 shadow-2xl border-white/10 group overflow-y-auto max-h-[70vh] md:max-h-[85vh]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="gradient-text font-bold text-sm">Overlay Controls</span>
-        <button
-          onClick={onReset}
-          className="text-xs text-white/40 hover:text-white/80 transition-colors px-2 py-1 rounded-lg hover:bg-white/5"
-        >
-          Reset
-        </button>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-primary shadow-[0_0_8px_var(--primary)]" />
+          <h3 className="brand-font text-[10px] md:text-sm font-bold tracking-widest uppercase text-white/80">Controls</h3>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onReset}
+            className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-white/90 bg-white/5 hover:bg-white/10 px-2 py-1 md:px-3 md:py-1.5 rounded-full transition-all border border-white/5"
+          >
+            Reset
+          </button>
+          <button
+            onClick={() => setMinimized(true)}
+            className="w-8 h-8 glass rounded-full flex items-center justify-center text-xs text-white/40 hover:text-white/80 border-white/5"
+            title="Minimize"
+          >
+            ▼
+          </button>
+        </div>
       </div>
 
-      {/* Upload */}
-      <label className="block w-full mb-4 cursor-pointer">
-        <div
-          className="btn-glow w-full py-2.5 text-center rounded-xl text-sm font-semibold transition-all"
-          style={{
-            background: overlay.src
-              ? "rgba(16,185,129,0.15)"
-              : "linear-gradient(135deg, rgba(124,58,237,0.4), rgba(6,182,212,0.3))",
-            border: overlay.src
-              ? "1px solid rgba(16,185,129,0.4)"
-              : "1px solid rgba(124,58,237,0.4)",
-            color: overlay.src ? "#10b981" : "#a78bfa",
-          }}
-        >
-          {overlay.src ? "✓ Image Loaded" : "⊕ Upload Image"}
-        </div>
+      {/* Image Upload Area */}
+      <div className="relative">
         <input
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/svg+xml"
+          id="imageInput"
+          accept="image/*"
           className="hidden"
           onChange={handleFile}
         />
-      </label>
+        <label
+          htmlFor="imageInput"
+          className={`
+            relative flex flex-col items-center justify-center p-4 md:p-8 rounded-2xl border-2 border-dashed 
+            transition-all cursor-pointer overflow-hidden group/upload
+            ${overlay.src 
+              ? 'border-secondary/30 bg-secondary/5 hover:border-secondary/50' 
+              : 'border-white/10 bg-white/[0.02] hover:border-primary/50 hover:bg-primary/[0.02]'}
+          `}
+        >
+          {overlay.src ? (
+            <>
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl glass border-secondary/20 flex items-center justify-center text-base md:text-xl mb-2 md:mb-3 shadow-lg">
+                ✅
+              </div>
+              <span className="text-[10px] md:text-xs font-bold text-secondary uppercase tracking-widest">Update Image</span>
+            </>
+          ) : (
+            <>
+              <div className="w-8 h-8 md:w-12 md:h-12 rounded-xl glass border-white/10 flex items-center justify-center text-base md:text-xl mb-2 md:mb-3 shadow-lg group-hover/upload:scale-110 transition-transform">
+                📸
+              </div>
+              <span className="text-[10px] md:text-xs font-bold text-white/60 uppercase tracking-widest group-hover/upload:text-primary transition-colors">Select Reference</span>
+            </>
+          )}
+        </label>
+      </div>
 
-      {/* Sliders */}
-      <div className="flex flex-col gap-4">
+      {/* Control Stack */}
+      <div className="flex flex-col gap-4 md:gap-6">
         <Slider
+          icon="🌗"
           label="Opacity"
           value={overlay.opacity}
           min={0} max={1} step={0.01}
@@ -105,57 +143,89 @@ export default function ControlPanel({ overlay, onUpdate, onReset, onImageUpload
           onChange={(v) => onUpdate({ opacity: v })}
         />
         <Slider
+          icon="🔍"
           label="Scale"
           value={overlay.scale}
           min={0.05} max={5} step={0.01}
           display={`${Math.round(overlay.scale * 100)}%`}
           onChange={(v) => onUpdate({ scale: v })}
         />
+        
+        <div className="grid grid-cols-2 gap-3 md:gap-4">
+          <Slider
+            icon="↔️"
+            label="X"
+            value={overlay.x}
+            min={-2000} max={2000} step={1}
+            display={`${Math.round(overlay.x)}`}
+            onChange={(v) => onUpdate({ x: v })}
+          />
+          <Slider
+            icon="↕️"
+            label="Y"
+            value={overlay.y}
+            min={-2000} max={2000} step={1}
+            display={`${Math.round(overlay.y)}`}
+            onChange={(v) => onUpdate({ y: v })}
+          />
+        </div>
+
         <Slider
-          label="Position X"
-          value={overlay.x}
-          min={-2000} max={2000} step={1}
-          display={`${Math.round(overlay.x)}px`}
-          onChange={(v) => onUpdate({ x: v })}
-        />
-        <Slider
-          label="Position Y"
-          value={overlay.y}
-          min={-2000} max={2000} step={1}
-          display={`${Math.round(overlay.y)}px`}
-          onChange={(v) => onUpdate({ y: v })}
-        />
-        <Slider
+          icon="🔄"
           label="Rotation"
           value={overlay.rotation}
           min={0} max={360} step={1}
           display={`${overlay.rotation}°`}
           onChange={(v) => onUpdate({ rotation: v })}
         />
-        
-        {overlay.src && (
-          <div className="text-xs text-center text-white/50 bg-white/5 py-2 rounded-lg mt-2">
-            🖐️ Drag to move • Scroll to scale • Shift+Scroll to rotate
-          </div>
-        )}
+
+        {/* Grid Controls */}
+        <div className="flex flex-col gap-3 md:gap-4 pt-4 border-t border-white/5">
+            <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-[10px] md:text-[11px] font-bold uppercase tracking-wider text-white/40">
+                    <span className="text-xs md:text-sm opacity-80">📏</span>
+                    Grid
+                </label>
+                <button 
+                    onClick={() => onUpdate({ showGrid: !overlay.showGrid })}
+                    className={`
+                        w-10 h-5 md:w-12 md:h-6 rounded-full transition-all relative
+                        ${overlay.showGrid ? 'bg-primary' : 'bg-white/10'}
+                    `}
+                >
+                    <div className={`
+                        absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-all
+                        ${overlay.showGrid ? 'translate-x-5 md:translate-x-6' : 'translate-x-0'}
+                    `} />
+                </button>
+            </div>
+            {overlay.showGrid && (
+                <Slider
+                    icon="⊞"
+                    label="Size"
+                    value={overlay.gridSize}
+                    min={20} max={200} step={1}
+                    display={`${overlay.gridSize}`}
+                    onChange={(v) => onUpdate({ gridSize: v })}
+                />
+            )}
+        </div>
       </div>
 
-      {/* Lock toggle */}
-      <button
-        onClick={() => onUpdate({ locked: !overlay.locked })}
-        className="mt-5 w-full py-2 rounded-xl text-sm font-semibold transition-all"
-        style={{
-          background: overlay.locked
-            ? "rgba(239,68,68,0.15)"
-            : "rgba(255,255,255,0.06)",
-          border: overlay.locked
-            ? "1px solid rgba(239,68,68,0.4)"
-            : "1px solid rgba(255,255,255,0.08)",
-          color: overlay.locked ? "#f87171" : "#fff",
-        }}
-      >
-        {overlay.locked ? "🔒 Locked" : "🔓 Unlocked"}
-      </button>
+      {/* State Actions */}
+      <div className="flex flex-col gap-2 mt-auto">
+        <button
+          onClick={() => onUpdate({ locked: !overlay.locked })}
+          className={`
+            w-full py-3 md:py-4 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all 
+            ${overlay.locked 
+              ? 'bg-red-500/10 text-red-500 border border-red-500/20' 
+              : 'bg-white/5 text-white/70 border border-white/10 hover:bg-white/10'}
+          `}
+        >
+          {overlay.locked ? '🔒 Unlock UI' : '🔓 Lock UI'}
+        </button>
+      </div>
     </div>
   );
 }

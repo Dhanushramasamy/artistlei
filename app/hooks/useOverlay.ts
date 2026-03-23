@@ -9,6 +9,8 @@ export interface OverlayState {
   rotation: number;
   opacity: number;
   locked: boolean;
+  showGrid: boolean;
+  gridSize: number;
 }
 
 const DEFAULT: OverlayState = {
@@ -19,6 +21,8 @@ const DEFAULT: OverlayState = {
   rotation: 0,
   opacity: 0.5,
   locked: false,
+  showGrid: false,
+  gridSize: 50,
 };
 
 export type OverlayPatch = Partial<OverlayState> | ((prev: OverlayState) => Partial<OverlayState>);

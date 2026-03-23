@@ -11,44 +11,55 @@ interface QRDisplayProps {
 export default function QRDisplay({ roomId, joinUrl }: QRDisplayProps) {
   const [copied, setCopied] = useState(false);
 
-  const copy = async () => {
-    await navigator.clipboard.writeText(roomId);
+  const copy = async (text: string) => {
+    await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="glass p-5 flex flex-col items-center gap-4 w-72">
-      <p className="text-xs text-white/50 uppercase tracking-widest font-semibold">Room ID</p>
-
-      {/* QR Code */}
-      <div className="bg-white rounded-xl p-3">
-        <QRCodeSVG value={joinUrl} size={160} />
+    <div className="flex flex-col items-center gap-4 md:gap-8 w-full">
+      {/* Premium QR Container */}
+      <div className="relative group/qr">
+        <div className="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-3xl blur-2xl opacity-20 group-hover/qr:opacity-30 transition-opacity" />
+        <div className="relative bg-white p-4 md:p-6 rounded-[24px] md:rounded-[32px] shadow-2xl transition-transform group-hover/qr:scale-[1.02]">
+          <QRCodeSVG 
+            value={joinUrl} 
+            size={typeof window !== 'undefined' && window.innerWidth < 640 ? 140 : 180} 
+            level="H" 
+            includeMargin={false} 
+          />
+        </div>
       </div>
 
-      {/* Room ID text */}
-      <div className="w-full flex gap-2 items-center">
-        <span className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 font-mono text-sm text-white/80 truncate">
-          {roomId || "Generating…"}
-        </span>
-        <button
-          onClick={copy}
-          className="btn-glow px-3 py-2 rounded-lg text-xs font-semibold transition-all"
-          style={{
-            background: copied
-              ? "rgba(16, 185, 129, 0.2)"
-              : "rgba(124, 58, 237, 0.25)",
-            border: copied ? "1px solid #10b981" : "1px solid rgba(124,58,237,0.4)",
-            color: copied ? "#10b981" : "#a78bfa",
-          }}
+      <div className="w-full flex flex-col gap-3 md:gap-4">
+        {/* Room ID Badge */}
+        <div className="flex flex-col gap-1 md:gap-1.5 px-0.5 md:px-1">
+            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/20">Room Identifier</span>
+            <div className="flex gap-2 items-center">
+                <div className="flex-1 glass-pill bg-white/[0.03] border-white/5 px-4 py-2.5 md:px-5 md:py-3.5 font-mono text-xs md:text-sm text-secondary font-bold tracking-wider truncate">
+                    {roomId || "Generating…"}
+                </div>
+                <button
+                    onClick={() => copy(roomId)}
+                    className={`
+                        w-10 h-10 md:w-12 md:h-12 glass rounded-xl md:rounded-2xl flex items-center justify-center text-base md:text-lg transition-all border-white/5
+                        ${copied ? 'text-green-400 bg-green-400/10' : 'text-white/40 hover:text-white/90 hover:bg-white/10'}
+                    `}
+                >
+                    {copied ? "✓" : "📋"}
+                </button>
+            </div>
+        </div>
+
+        {/* Copy Link Option */}
+        <button 
+            onClick={() => copy(joinUrl)}
+            className="w-full py-3 md:py-4 glass-pill border-white/5 text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] text-white/30 hover:text-white/70 hover:bg-white/5 transition-all"
         >
-          {copied ? "Copied!" : "Copy"}
+            Copy Direct Link 🔗
         </button>
       </div>
-
-      <p className="text-xs text-white/35 text-center">
-        Scan the QR or share the Room ID with the Static device
-      </p>
     </div>
   );
 }
