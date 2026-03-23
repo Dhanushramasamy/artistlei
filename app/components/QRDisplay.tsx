@@ -19,15 +19,17 @@ export default function QRDisplay({ roomId, joinUrl }: QRDisplayProps) {
 
   return (
     <div className="flex flex-col items-center gap-4 md:gap-8 w-full">
-      {/* Premium QR Container */}
+      {/* Optimized QR Container */}
       <div className="relative group/qr">
         <div className="absolute inset-0 bg-gradient-to-tr from-primary to-secondary rounded-3xl blur-2xl opacity-20 group-hover/qr:opacity-30 transition-opacity" />
         <div className="relative bg-white p-4 md:p-6 rounded-[24px] md:rounded-[32px] shadow-2xl transition-transform group-hover/qr:scale-[1.02]">
+          {/* Using level="M" and includeMargin=true for much better scan reliability */}
           <QRCodeSVG 
             value={joinUrl} 
-            size={typeof window !== 'undefined' && window.innerWidth < 640 ? 140 : 180} 
-            level="H" 
-            includeMargin={false} 
+            size={typeof window !== 'undefined' && window.innerWidth < 640 ? 180 : 220} 
+            level="M" 
+            includeMargin={true}
+            marginSize={2}
           />
         </div>
       </div>
